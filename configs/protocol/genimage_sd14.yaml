@@ -1,0 +1,57 @@
+protocol:
+  name: genimage_sd14
+  seed: 42
+  train_manifest: artifacts/manifests/genimage_sd14/train.parquet
+  validation_manifest: artifacts/manifests/genimage_sd14/validation.parquet
+  test_manifest: artifacts/manifests/genimage_sd14/test.parquet
+  model_config: configs/model/cifp_vits16.yaml
+data:
+  genimage_root: /data/zhy/GenImage
+  crop_size: 128
+  small_image_policy: error
+  corrupt_image_policy: error
+  horizontal_flip: false
+  source_aliases:
+    Midjourney: Midjourney
+    SDv1.4: stable_diffusion_v_1_4
+    SDv1.5: stable_diffusion_v_1_5
+    ADM: ADM
+    GLIDE: glide
+    Wukong: wukong
+    VQDM: VQDM
+    BigGAN: BigGAN
+environment:
+  count: 100
+  max_fit_samples: 200000
+  feature_dtype: float16
+  random_state: 42
+  manifest_dir: artifacts/manifests/genimage_sd14
+optimizer:
+  name: Adam
+  lr: 0.0002
+  betas: [0.9, 0.999]
+  weight_decay: 0.0002
+training:
+  epochs: 200
+  per_gpu_batch_size: 32
+  expected_global_batch_size: 128
+  gradient_accumulation_steps: 1
+  precision: bf16
+  workers: 8
+  prefetch_factor: 2
+  persistent_workers: true
+  pin_memory: true
+loss:
+  lambda_comp: 0.1
+  lambda_nui: 0.1
+  sparse_weight: 0.1
+  balance_weight: 1.0
+  diversity_weight: 0.1
+  pos_weight: null
+  grl_max: 1.0
+  grl_warmup_epochs: 5
+  grl_ramp_end_epoch: 20
+evaluation:
+  threshold: 0.5
+output:
+  root: outputs

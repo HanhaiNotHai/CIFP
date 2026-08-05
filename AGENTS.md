@@ -620,3 +620,53 @@ A later user correction invalidates conflicting earlier assumptions.
 
 When a material conflict cannot be resolved safely, stop before modification and
 ask one focused question.
+
+---
+
+# CIFP Method Invariants
+
+These rules apply to every CIFP source file, configuration, experiment, and review.
+
+## Architecture
+
+* The detector representation consists only of sparse local forensic-primitive activations,
+  image-level usage statistics, and optionally local primitive cooccurrence.
+* The fake classifier accepts only `z_for`. CLS tokens, semantic embeddings, environment labels,
+  source IDs, and generator IDs must never enter that classifier.
+* The frozen DINOv3 semantic teacher exists only in offline environment-building tools. It must
+  not be a child module of `CIFP`, appear in CIFP checkpoints, or be required for inference.
+* Do not add normal predictors, real-image reference models, reconstruction, input/feature/token
+  subtraction, residual features, deviation scores, normal centers, or nearest-real prototypes.
+  Standard residual connections internal to the Transformer backbone are allowed.
+* Do not silently substitute DINOv2, another DINOv3 variant, or random weights. Missing DINOv3
+  access must fail with the requested model ID and an actionable authorization/login message.
+
+## Data and protocol
+
+* `/data/zhy/CNNDetection/dataset`, `/data/zhy/GenImage`,
+  `/data/zhy/GANGen-Detection`, and `/data/zhy/SemTrace` are read-only.
+* Training and evaluation datasets read project-owned manifests; they do not rescan roots.
+* Labels are always real `0`, fake/generated `1`; fake probability is `sigmoid(fake_logit)` and
+  the evaluation threshold is fixed at `0.5`.
+* Protocol-aligned transforms are RandomCrop(128) for training and CenterCrop(128) for testing,
+  without resize or pixel mapping. Images below the crop size error by default.
+* Never mix ForenSynths and GenImage samples when fitting content environments.
+
+## Training and verification
+
+* The paper-aligned run uses Adam, 200 epochs, and global batch 128 on 4 GPUs. Six-GPU runs must
+  report the actual global batch and carry `non_protocol_batch=true` when it is not 128.
+* Do not start full training, full evaluation, large feature extraction, or model/data downloads
+  without separate approval. Automated smoke runs are capped at 20 optimizer steps.
+* Unit tests: `uv run pytest -q`.
+* Static checks: `uv run ruff check .` and `uv run ruff format --check .`.
+* Synthetic smoke: `uv run python -m cifp.cli.train --config configs/protocol/forensynths_selfsynthesis.yaml --synthetic --max-steps 2 --precision fp32`.
+* Real-data smoke: build the protocol manifest, then use the same command with `--max-steps 1`.
+
+## Code discipline
+
+* Use Python type annotations, pathlib, explicit exceptions, and shape assertions at tensor
+  boundaries. Never silently skip corrupt or undersized images.
+* Keep modules focused; do not put the project into a monolithic training script.
+* New behavior starts with a failing focused test. Run the smallest relevant test after each
+  implementation slice and review the complete diff before completion.
