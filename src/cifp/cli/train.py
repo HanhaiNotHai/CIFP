@@ -240,6 +240,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     gradient_accumulation_steps=int(training["gradient_accumulation_steps"]),
                     max_optimizer_steps=remaining,
                     logger=logger,
+                    show_progress=context.is_main,
                     grl_max=float(loss_config["grl_max"]),
                     grl_warmup_epochs=int(loss_config["grl_warmup_epochs"]),
                     grl_ramp_end_epoch=int(loss_config["grl_ramp_end_epoch"]),

@@ -7,6 +7,7 @@ import torch
 from torch import nn
 from torch.nn import functional
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 
 from cifp.losses.total import CIFPLoss
 from cifp.models.adversarial import grl_coefficient
@@ -52,6 +53,7 @@ def train_one_epoch(
     gradient_accumulation_steps: int,
     max_optimizer_steps: int | None,
     logger: RunLogger,
+    show_progress: bool = False,
     grl_max: float = 1.0,
     grl_warmup_epochs: int = 5,
     grl_ramp_end_epoch: int = 20,
@@ -66,6 +68,17 @@ def train_one_epoch(
     optimizer_steps = 0
     last_metrics: dict[str, float | int] = {}
     unwrapped = _module(model)
+    optimizer_step_total = (len(loader) + gradient_accumulation_steps - 1) // (
+        gradient_accumulation_steps
+    )
+    if max_optimizer_steps is not None:
+        optimizer_step_total = min(optimizer_step_total, max_optimizer_steps)
+    progress = tqdm(
+        total=optimizer_step_total,
+        desc=f"train epoch {epoch + 1}",
+        unit="step",
+        disable=not show_progress,
+    )
     for batch_index, batch in enumerate(loader):
         fractional_epoch = epoch + batch_index / max(1, len(loader))
         grl = grl_coefficient(
@@ -149,6 +162,8 @@ def train_one_epoch(
             ),
         }
         logger.log(last_metrics)
+        progress.update()
         if max_optimizer_steps is not None and optimizer_steps >= max_optimizer_steps:
             break
+    progress.close()
     return EpochResult(global_step, optimizer_steps, last_metrics)
