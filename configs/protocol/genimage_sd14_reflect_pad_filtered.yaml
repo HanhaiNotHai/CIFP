@@ -1,0 +1,7 @@
+base_config: configs/protocol/genimage_sd14_reflect_pad.yaml
+protocol:
+  name: genimage_sd14_filtered
+  preprocessing_variant: reflect_pad_filtered_non_protocol
+  train_manifest: artifacts/manifests/genimage_sd14_filtered/train.parquet
+environment:
+  manifest_dir: artifacts/manifests/genimage_sd14_filtered
