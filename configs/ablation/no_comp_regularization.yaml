@@ -1,0 +1,4 @@
+base_config: configs/protocol/forensynths_selfsynthesis.yaml
+loss:
+  lambda_comp: 0.0
+

@@ -1,0 +1,4 @@
+base_config: configs/protocol/forensynths_selfsynthesis.yaml
+model:
+  kind: patch_mean
+

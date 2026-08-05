@@ -1,0 +1,20 @@
+base_config: configs/protocol/forensynths_selfsynthesis.yaml
+protocol:
+  name: optional_ufd
+  seed: 42
+  test_manifest: artifacts/manifests/optional_ufd/test.parquet
+  model_config: configs/model/cifp_vits16.yaml
+data:
+  ufd_root: /data/zhy/CNNDetection/dataset/test
+  source_aliases:
+    Guided: Guided
+    LDM: LDM
+    GLIDE: GLIDE
+    DALL-E: DALL-E
+  crop_size: 128
+  small_image_policy: error
+  corrupt_image_policy: error
+evaluation:
+  threshold: 0.5
+output:
+  root: outputs

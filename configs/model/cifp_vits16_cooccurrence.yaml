@@ -1,0 +1,19 @@
+model:
+  kind: cifp
+  model_id: facebook/dinov3-vits16-pretrain-lvd1689m
+  model_path_env: CIFP_DINOV3_PATH
+  local_files_only: true
+  train_last_n_blocks: 2
+  train_norm: false
+  primitive_count: 32
+  forensic_dim: 256
+  composition_dim: 128
+  temperature: 0.1
+  top_k: 4
+  assignment: topk
+  random_fixed_dictionary: false
+  cooccurrence:
+    enabled: true
+    output_dim: 128
+    dropout: 0.1
+

@@ -1,0 +1,4 @@
+base_config: configs/protocol/forensynths_selfsynthesis.yaml
+model:
+  random_fixed_dictionary: true
+

@@ -1,0 +1,5 @@
+base_config: configs/protocol/forensynths_selfsynthesis.yaml
+environment:
+  assignment: fixed_random
+  random_state: 42
+

@@ -1,0 +1,4 @@
+base_config: configs/protocol/forensynths_selfsynthesis.yaml
+model:
+  train_last_n_blocks: 2
+

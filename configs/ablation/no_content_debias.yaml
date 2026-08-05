@@ -1,0 +1,5 @@
+base_config: configs/protocol/forensynths_selfsynthesis.yaml
+loss:
+  lambda_nui: 0.0
+  grl_max: 0.0
+
