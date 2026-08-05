@@ -26,6 +26,17 @@ def test_config_loader_merges_protocol_model_and_ablation() -> None:
     assert config["optimizer"]["name"] == "Adam"
 
 
+def test_genimage_reflect_pad_variant_preserves_protocol_identity() -> None:
+    standard = load_config("configs/protocol/genimage_sd14.yaml")
+    variant = load_config("configs/protocol/genimage_sd14_reflect_pad.yaml")
+
+    assert standard["data"]["small_image_policy"] == "error"
+    assert variant["data"]["small_image_policy"] == "reflect_pad"
+    assert variant["protocol"]["name"] == "genimage_sd14"
+    assert variant["protocol"]["preprocessing_variant"] == "reflect_pad_non_protocol"
+    assert variant["protocol"]["train_manifest"] == standard["protocol"]["train_manifest"]
+
+
 def test_random_environment_ablation_is_activated_by_config_or_cli() -> None:
     standard = load_config("configs/protocol/forensynths_selfsynthesis.yaml")
     ablation = load_config("configs/ablation/random_content_env.yaml")

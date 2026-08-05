@@ -1,0 +1,7 @@
+base_config: configs/protocol/genimage_sd14.yaml
+
+protocol:
+  preprocessing_variant: reflect_pad_non_protocol
+
+data:
+  small_image_policy: reflect_pad

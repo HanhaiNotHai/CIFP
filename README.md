@@ -85,6 +85,21 @@ uv run python -m cifp.cli.cluster_environments \
   --config configs/protocol/genimage_sd14.yaml
 ```
 
+若严格 GenImage 配置因小于 128 的图像中止，可使用显式的反射填充变体继续现有 memmap：
+
+```bash
+CIFP_DINOV3_PATH=/path/to/dinov3-vits16/snapshot \
+CUDA_VISIBLE_DEVICES=0 \
+uv run python -m cifp.cli.extract_semantics \
+  --config configs/protocol/genimage_sd14_reflect_pad.yaml \
+  --device cuda
+```
+
+该配置保留 `protocol.name=genimage_sd14`，因此会从已有完成位继续，而不会重算已完成行。
+它使用 `reflect_pad` 保留小图，属于明确的 `reflect_pad_non_protocol` 预处理变体；后续训练和
+评测也必须使用同一派生配置，不能把结果标为严格论文对齐实验。原
+`configs/protocol/genimage_sd14.yaml` 始终保持 `small_image_policy=error`。
+
 聚类默认 `C=100`、最多平衡抽样 200,000 行、`random_state=42`。输出包括 clusterer、
 fit index、更新后的训练 manifest 和环境分布问题报告。`--random` 仅用于固定随机环境消融。
 
