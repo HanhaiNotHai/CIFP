@@ -100,6 +100,35 @@ uv run python -m cifp.cli.extract_semantics \
 评测也必须使用同一派生配置，不能把结果标为严格论文对齐实验。原
 `configs/protocol/genimage_sd14.yaml` 始终保持 `small_image_policy=error`。
 
+如果提取因空文件、损坏文件或 manifest 中已不存在的路径中止，先生成独立的审计报告和过滤
+manifest。该命令只读取原 manifest 和数据文件；它保留可读的小图并记录尺寸，仅从新 manifest
+中排除空、损坏和缺失文件：
+
+```bash
+uv run python -m cifp.cli.audit_manifest \
+  --manifest artifacts/manifests/genimage_sd14/train.parquet \
+  --output-manifest artifacts/manifests/genimage_sd14_filtered/train.parquet \
+  --workers 8
+```
+
+输出为 `train.parquet`、`image_issues.csv` 和 `audit_summary.json`。确认报告后，使用独立的
+协议名和特征目录重新提取；旧 `genimage_sd14/semantic_features` 不会被覆盖或删除：
+
+```bash
+CIFP_DINOV3_PATH=/path/to/dinov3-vits16/snapshot \
+CUDA_VISIBLE_DEVICES=0 \
+uv run python -m cifp.cli.extract_semantics \
+  --config configs/protocol/genimage_sd14_reflect_pad_filtered.yaml \
+  --batch-size 1024 \
+  --device cuda
+
+uv run python -m cifp.cli.cluster_environments \
+  --config configs/protocol/genimage_sd14_reflect_pad_filtered.yaml
+```
+
+审计和完整语义提取都会遍历训练集，属于需要人工启动的长任务。过滤配置是明确的
+`reflect_pad_filtered_non_protocol` 变体，不应标记为严格论文协议结果。
+
 聚类默认 `C=100`、最多平衡抽样 200,000 行、`random_state=42`。输出包括 clusterer、
 fit index、更新后的训练 manifest 和环境分布问题报告。`--random` 仅用于固定随机环境消融。
 

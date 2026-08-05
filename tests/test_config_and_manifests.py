@@ -37,6 +37,17 @@ def test_genimage_reflect_pad_variant_preserves_protocol_identity() -> None:
     assert variant["protocol"]["train_manifest"] == standard["protocol"]["train_manifest"]
 
 
+def test_genimage_filtered_variant_uses_independent_artifacts() -> None:
+    variant = load_config("configs/protocol/genimage_sd14_reflect_pad_filtered.yaml")
+
+    assert variant["data"]["small_image_policy"] == "reflect_pad"
+    assert variant["protocol"]["name"] == "genimage_sd14_filtered"
+    assert variant["protocol"]["train_manifest"] == (
+        "artifacts/manifests/genimage_sd14_filtered/train.parquet"
+    )
+    assert variant["environment"]["manifest_dir"] == "artifacts/manifests/genimage_sd14_filtered"
+
+
 def test_random_environment_ablation_is_activated_by_config_or_cli() -> None:
     standard = load_config("configs/protocol/forensynths_selfsynthesis.yaml")
     ablation = load_config("configs/ablation/random_content_env.yaml")
