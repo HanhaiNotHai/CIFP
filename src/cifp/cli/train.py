@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 from collections.abc import Sequence
-from datetime import UTC, datetime
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -183,7 +183,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 pos_weight=loss_config["pos_weight"],
             )
         )
-        run_id = arguments.run_id or datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+        run_id = arguments.run_id or datetime.now().strftime("%Y%m%dT%H%M%S")
         run_directory = arguments.output or Path(config["output"]["root"]) / run_id
         if context.is_main:
             run_directory.mkdir(parents=True, exist_ok=True)
