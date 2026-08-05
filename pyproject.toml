@@ -14,6 +14,7 @@ dependencies = [
     "scikit-learn>=1.9,<2",
     "tensorboard>=2.21,<3",
     "torch==2.11.0",
+    "torch-tb-profiler>=0.4.3",
     "torchvision==0.26.0",
     "tqdm>=4.67,<5",
     "transformers==5.14.0",
