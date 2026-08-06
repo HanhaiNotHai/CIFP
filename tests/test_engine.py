@@ -9,6 +9,7 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
 
+from cifp.engine import evaluator
 from cifp.engine.distributed import DistributedEvalSampler, global_batch_info
 from cifp.engine.evaluator import evaluate_model, save_evaluation_outputs
 from cifp.utils.logging import RunLogger
@@ -90,6 +91,42 @@ def test_evaluator_rejects_duplicate_sample_paths() -> None:
             DataLoader(_DuplicatePathDataset(), batch_size=2),
             device=torch.device("cpu"),
         )
+
+
+@pytest.mark.parametrize(("show_progress", "disabled"), [(None, True), (True, False)])
+def test_evaluation_progress_counts_batches_and_can_be_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+    show_progress: bool | None,
+    disabled: bool,
+) -> None:
+    settings: dict[str, object] = {}
+    updates: list[int] = []
+    closed = False
+
+    class RecordingProgress:
+        def __init__(self, *, total: int, desc: str, unit: str, disable: bool) -> None:
+            settings.update(total=total, desc=desc, unit=unit, disable=disable)
+
+        def update(self, count: int = 1) -> None:
+            updates.append(count)
+
+        def close(self) -> None:
+            nonlocal closed
+            closed = True
+
+    monkeypatch.setattr(evaluator, "tqdm", RecordingProgress)
+    options = {} if show_progress is None else {"show_progress": show_progress}
+
+    evaluate_model(
+        _ScoreModel(),
+        DataLoader(_PredictionDataset(), batch_size=2),
+        device=torch.device("cpu"),
+        **options,
+    )
+
+    assert settings == {"total": 2, "desc": "evaluate", "unit": "batch", "disable": disabled}
+    assert sum(updates) == 2
+    assert closed
 
 
 def test_run_logger_writes_jsonl_csv_and_tensorboard(tmp_path: Path) -> None:

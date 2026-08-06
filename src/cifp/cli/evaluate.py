@@ -69,6 +69,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             device=context.device,
             threshold=float(config["evaluation"]["threshold"]),
             expected_paths=expected_paths,
+            show_progress=context.is_main,
         )
         if context.is_main:
             output = arguments.output or Path("outputs") / f"eval_{arguments.checkpoint.stem}"
