@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from cifp.engine.distributed import gather_objects
-from cifp.metrics.binary import evaluate_by_source
+from cifp.metrics.binary import evaluate_by_source, select_accuracy_optimal_threshold
 
 PREDICTION_COLUMNS = ["path", "label", "score", "prediction", "source"]
 
@@ -26,6 +26,7 @@ def evaluate_model(
     threshold: float = 0.5,
     expected_paths: set[str] | None = None,
     show_progress: bool = False,
+    select_test_oracle_threshold: bool = False,
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
     """Evaluate fake probabilities, gather ranks, and reject duplicate/missing samples."""
     model.eval()
@@ -44,7 +45,6 @@ def evaluate_model(
                     "path": str(path),
                     "label": int(label),
                     "score": float(score),
-                    "prediction": int(score >= threshold),
                     "source": str(source),
                 }
             )
@@ -63,13 +63,26 @@ def evaluate_model(
             f"distributed evaluation sample mismatch; missing={missing[:10]}, "
             f"unexpected={unexpected[:10]}"
         )
+    selected_threshold = threshold
+    threshold_selection = "fixed"
+    if select_test_oracle_threshold:
+        selected_threshold = select_accuracy_optimal_threshold(
+            [int(row["label"]) for row in rows],
+            [float(row["score"]) for row in rows],
+        )
+        threshold_selection = "test_oracle_accuracy"
+    for row in rows:
+        row["prediction"] = int(float(row["score"]) >= selected_threshold)
     predictions = pd.DataFrame(rows, columns=PREDICTION_COLUMNS)
     report = evaluate_by_source(
         predictions["label"].tolist(),
         predictions["score"].tolist(),
         predictions["source"].tolist(),
-        threshold=threshold,
+        threshold=selected_threshold,
     )
+    report["threshold_selection"] = threshold_selection
+    report["selected_threshold"] = selected_threshold
+    report["selected_accuracy"] = report["overall"]["accuracy"]
     return predictions, report
 
 

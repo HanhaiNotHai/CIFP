@@ -33,6 +33,27 @@ class _ScoreModel(nn.Module):
         return torch.where(images[:, 0].remainder(2) == 1, 3.0, -3.0)
 
 
+class _LogitModel(nn.Module):
+    def inference(self, images: torch.Tensor) -> torch.Tensor:
+        return images[:, 0]
+
+
+class _OracleThresholdDataset(Dataset[dict[str, object]]):
+    rows = [(0.55, 0, "a"), (0.8, 1, "a"), (0.6, 0, "b"), (0.9, 1, "b")]
+
+    def __len__(self) -> int:
+        return len(self.rows)
+
+    def __getitem__(self, index: int) -> dict[str, object]:
+        probability, label, source = self.rows[index]
+        return {
+            "image": torch.logit(torch.tensor([probability])),
+            "label": torch.tensor(float(label)),
+            "path": f"/oracle/{index}.png",
+            "source": source,
+        }
+
+
 class _DuplicatePathDataset(_PredictionDataset):
     def __getitem__(self, index: int) -> dict[str, object]:
         item = super().__getitem__(index)
@@ -127,6 +148,37 @@ def test_evaluation_progress_counts_batches_and_can_be_disabled(
     assert settings == {"total": 2, "desc": "evaluate", "unit": "batch", "disable": disabled}
     assert sum(updates) == 2
     assert closed
+
+
+def test_evaluator_can_apply_one_global_test_oracle_threshold() -> None:
+    loader = DataLoader(_OracleThresholdDataset(), batch_size=2)
+    fixed_predictions, fixed_report = evaluate_model(
+        _LogitModel(), loader, device=torch.device("cpu")
+    )
+    oracle_predictions, oracle_report = evaluate_model(
+        _LogitModel(),
+        loader,
+        device=torch.device("cpu"),
+        select_test_oracle_threshold=True,
+    )
+
+    assert fixed_report["threshold_selection"] == "fixed"
+    assert fixed_report["overall"]["accuracy"] == pytest.approx(0.5)
+    assert oracle_report["threshold_selection"] == "test_oracle_accuracy"
+    assert oracle_report["selected_threshold"] > 0.6
+    assert oracle_report["selected_threshold"] < 0.61
+    assert oracle_report["selected_accuracy"] == pytest.approx(1.0)
+    assert oracle_report["overall"]["accuracy"] == pytest.approx(1.0)
+    assert set(metrics["threshold"] for metrics in oracle_report["per_source"].values()) == {
+        oracle_report["selected_threshold"]
+    }
+    assert oracle_predictions["prediction"].tolist() == [0, 1, 0, 1]
+    assert fixed_predictions["prediction"].tolist() == [1, 1, 1, 1]
+    assert (
+        oracle_report["overall"]["average_precision"]
+        == fixed_report["overall"]["average_precision"]
+    )
+    assert oracle_report["overall"]["auroc"] == fixed_report["overall"]["auroc"]
 
 
 def test_run_logger_writes_jsonl_csv_and_tensorboard(tmp_path: Path) -> None:

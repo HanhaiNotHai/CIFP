@@ -193,6 +193,21 @@ CUDA_VISIBLE_DEVICES=0 uv run python -m cifp.cli.evaluate \
   --output outputs/genimage_sd14_cifp_seed42/evaluation/genimage_cross_generator
 ```
 
+仅用于分析分数校准时，可以在整个 test manifest 上使用真实标签选择使 overall Accuracy
+最高的单一全局阈值：
+
+```bash
+CUDA_VISIBLE_DEVICES=0 uv run python -m cifp.cli.evaluate \
+  --config configs/protocol/genimage_sd14.yaml \
+  --checkpoint outputs/genimage_sd14_cifp_seed42/checkpoints/best_validation_ap.pt \
+  --test-oracle-threshold \
+  --output outputs/genimage_sd14_cifp_seed42/evaluation/genimage_test_oracle
+```
+
+该模式存在明确的测试集标签泄漏，报告标记为
+`threshold_selection=test_oracle_accuracy`，不能作为正式论文主结果或与固定 0.5 的无泄漏
+结果等价比较。默认评测仍使用配置中的 0.5，且不会搜索测试集阈值。
+
 DDP 评测可把 `python` 换为 `torchrun --standalone --nproc_per_node=N`；sampler 不填充，
 rank 聚合后会检查重复和漏样本。
 

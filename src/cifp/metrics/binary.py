@@ -14,6 +14,45 @@ from sklearn.metrics import (
 )
 
 
+def select_accuracy_optimal_threshold(
+    labels: Sequence[int], probabilities: Sequence[float]
+) -> float:
+    """Select the global accuracy-optimal threshold with a deterministic tie-break."""
+    targets = np.asarray(labels, dtype=np.int64)
+    scores = np.asarray(probabilities, dtype=np.float64)
+    if targets.shape != scores.shape or targets.ndim != 1 or targets.size == 0:
+        raise ValueError("labels and probabilities must be non-empty equal-length vectors")
+    if set(np.unique(targets)) - {0, 1}:
+        raise ValueError("labels must be real=0 or fake=1")
+    if not np.isfinite(scores).all() or np.any((scores < 0) | (scores > 1)):
+        raise ValueError("probabilities must be finite values in [0, 1]")
+
+    best_threshold = 0.5
+    best_correct = int((targets == (scores >= best_threshold)).sum())
+
+    def consider(threshold: float, correct: int) -> None:
+        nonlocal best_correct, best_threshold
+        candidate_key = (abs(threshold - 0.5), threshold)
+        best_key = (abs(best_threshold - 0.5), best_threshold)
+        if correct > best_correct or (correct == best_correct and candidate_key < best_key):
+            best_correct = correct
+            best_threshold = threshold
+
+    order = np.argsort(-scores, kind="stable")
+    correct = int((targets == 0).sum())
+    position = 0
+    while position < len(order):
+        score = float(scores[order[position]])
+        consider(float(np.nextafter(score, np.inf)), correct)
+        end = position
+        while end < len(order) and scores[order[end]] == score:
+            correct += 1 if targets[order[end]] == 1 else -1
+            end += 1
+        consider(score, correct)
+        position = end
+    return best_threshold
+
+
 def binary_metrics(
     labels: Sequence[int], probabilities: Sequence[float], *, threshold: float = 0.5
 ) -> dict[str, Any]:
