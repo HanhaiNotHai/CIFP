@@ -9,6 +9,7 @@ import pandas as pd
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 
 from cifp.engine.distributed import gather_objects
 from cifp.metrics.binary import evaluate_by_source
@@ -24,11 +25,13 @@ def evaluate_model(
     device: torch.device,
     threshold: float = 0.5,
     expected_paths: set[str] | None = None,
+    show_progress: bool = False,
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
     """Evaluate fake probabilities, gather ranks, and reject duplicate/missing samples."""
     model.eval()
     local_rows: list[dict[str, object]] = []
     module = getattr(model, "module", model)
+    progress = tqdm(total=len(loader), desc="evaluate", unit="batch", disable=not show_progress)
     for batch in loader:
         logits = module.inference(batch["image"].to(device, non_blocking=True))
         scores = torch.sigmoid(logits).cpu().tolist()
@@ -45,6 +48,8 @@ def evaluate_model(
                     "source": str(source),
                 }
             )
+        progress.update()
+    progress.close()
     gathered = gather_objects(local_rows)
     rows = [row for rank_rows in gathered for row in rank_rows]
     paths = [str(row["path"]) for row in rows]
