@@ -6,6 +6,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 from matplotlib import pyplot as plt
+from PIL import Image
 
 from cifp.cli.visualize_primitive_usage import (
     _cell_label,
@@ -74,16 +75,52 @@ def test_heatmap_x_tick_labels_are_horizontal(
     assert {label.get_rotation() for label in axis.get_xticklabels()} == {0.0}
 
 
-def test_usage_heatmap_cli_writes_plain_and_annotated_pngs(tmp_path: Path) -> None:
+def test_annotated_heatmap_uses_approved_typography_and_bottom_title(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(plt, "close", lambda _figure: None)
+    with plt.rc_context({"font.family": _chinese_font()}):
+        _render_heatmap(
+            np.array([[0.5, 0.5]]),
+            ["全体样本"],
+            set(),
+            tmp_path / "heatmap.png",
+            annotate=True,
+        )
+
+    axis, colorbar_axis = plt.gcf().axes
+    assert -0.3 < axis.title.get_position()[1] < 0.0
+    assert axis.title.get_fontsize() == 18
+    assert axis.xaxis.label.get_fontsize() == 16
+    assert axis.yaxis.label.get_fontsize() == 16
+    assert axis.yaxis.label.get_rotation() == 270
+    assert axis.yaxis.labelpad == 30
+    assert {label.get_fontsize() for label in axis.get_xticklabels()} == {12}
+    assert {label.get_fontsize() for label in axis.get_yticklabels()} == {14}
+    assert {label.get_fontsize() for label in colorbar_axis.get_yticklabels()} == {12}
+    assert colorbar_axis.yaxis.label.get_fontsize() == 16
+    assert colorbar_axis.yaxis.label.get_rotation() == 270
+    assert colorbar_axis.yaxis.labelpad == 30
+    assert {label.get_fontsize() for label in axis.texts} == {10}
+
+
+def test_usage_heatmap_cli_writes_pngs_and_annotated_pdf_at_300_dpi(tmp_path: Path) -> None:
     input_path = tmp_path / "usage.json"
     input_path.write_text(json.dumps(_usage_report()), encoding="utf-8")
 
     assert main(["--input", str(input_path), "--output-dir", str(tmp_path)]) == 0
 
-    for filename in ("primitive_usage_heatmap.png", "primitive_usage_heatmap_annotated.png"):
+    for filename in (
+        "primitive_usage_heatmap.png",
+        "primitive_usage_heatmap_annotated.png",
+        "primitive_usage_heatmap_annotated.pdf",
+    ):
         output = tmp_path / filename
         assert output.is_file()
         assert output.stat().st_size > 0
+
+    with Image.open(tmp_path / "primitive_usage_heatmap_annotated.png") as image:
+        assert image.info["dpi"] == pytest.approx((300, 300), abs=0.1)
 
 
 def test_build_usage_matrix_rejects_inconsistent_primitive_counts() -> None:

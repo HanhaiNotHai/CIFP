@@ -16,6 +16,7 @@ from matplotlib import pyplot as plt  # noqa: E402
 
 PLAIN_FILENAME = "primitive_usage_heatmap.png"
 ANNOTATED_FILENAME = "primitive_usage_heatmap_annotated.png"
+ANNOTATED_PDF_FILENAME = "primitive_usage_heatmap_annotated.pdf"
 GENERATOR_ORDER = (
     "Midjourney",
     "SDv1.4",
@@ -107,18 +108,22 @@ def _render_heatmap(
     norm = TwoSlopeNorm(vmin=-limit, vcenter=0.0, vmax=limit)
     primitive_count = matrix.shape[1]
     figure, axis = plt.subplots(
-        figsize=(max(12.0, primitive_count * 0.45), max(6.0, len(row_labels) * 0.5)),
+        figsize=(max(12.0, primitive_count * 0.5), max(6.0, len(row_labels) * 0.55)),
         constrained_layout=True,
     )
     image = axis.imshow(percentages, cmap="RdBu_r", norm=norm, aspect="auto")
     axis.set_xticks(np.arange(primitive_count), [str(index) for index in range(primitive_count)])
     axis.set_yticks(np.arange(len(row_labels)), row_labels)
-    axis.tick_params(axis="x", labelrotation=0)
-    axis.set_xlabel("取证基元")
-    axis.set_ylabel("样本分组与使用率差")
-    axis.set_title("取证基元使用分布")
+    axis.tick_params(axis="x", labelrotation=0, labelsize=12)
+    axis.tick_params(axis="y", labelsize=14)
+    axis.set_xlabel("取证基元", fontsize=16)
+    axis.set_ylabel("样本分组与使用率差", fontsize=16, labelpad=30, rotation=270)
+    axis.set_title("取证基元使用分布", fontsize=18, y=-0.14, pad=0)
     colorbar = figure.colorbar(image, ax=axis, fraction=0.025, pad=0.02)
-    colorbar.set_label("平均使用率 / 使用率差（% / 个百分点）")
+    colorbar.ax.tick_params(labelsize=12)
+    colorbar.set_label(
+        "平均使用率 / 使用率差（% / 个百分点）", fontsize=16, labelpad=30, rotation=270
+    )
 
     if annotate:
         for row in range(percentages.shape[0]):
@@ -131,11 +136,11 @@ def _render_heatmap(
                     label,
                     ha="center",
                     va="center",
-                    fontsize=6.5,
+                    fontsize=10,
                     color="white" if abs(value) > limit * 0.5 else "black",
                 )
     output.parent.mkdir(parents=True, exist_ok=True)
-    figure.savefig(output, dpi=200)
+    figure.savefig(output, dpi=300, bbox_inches="tight", pad_inches=0.08)
     plt.close(figure)
 
 
@@ -166,8 +171,16 @@ def main(argv: Sequence[str] | None = None) -> int:
             arguments.output_dir / ANNOTATED_FILENAME,
             annotate=True,
         )
+        _render_heatmap(
+            matrix,
+            row_labels,
+            difference_rows,
+            arguments.output_dir / ANNOTATED_PDF_FILENAME,
+            annotate=True,
+        )
     print(f"纯热力图：{(arguments.output_dir / PLAIN_FILENAME).resolve()}")
     print(f"数值热力图：{(arguments.output_dir / ANNOTATED_FILENAME).resolve()}")
+    print(f"数值热力图 PDF：{(arguments.output_dir / ANNOTATED_PDF_FILENAME).resolve()}")
     return 0
 
 
